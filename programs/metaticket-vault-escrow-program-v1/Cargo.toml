@@ -1,0 +1,21 @@
+[package]
+name = "metaticket-vault-escrow-program-v1"
+version = "0.1.0"
+description = "Created with Anchor"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "metaticket_vault_escrow_program_v1"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = {version = "0.27.0", features = ["init-if-needed"]}
+anchor-spl = "0.27.0"
+solana-program = "=1.14.16"
