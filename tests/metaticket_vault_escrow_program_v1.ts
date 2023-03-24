@@ -20,6 +20,7 @@ describe("nft-vault", () => {
 
   const payer = new PublicKey("sRGTjNgc4qLFKj2CAAHezaNjgLnrTrAdGrdurpinjEN");
   const metaticket_authority = Keypair.generate();
+  const ticketIssue = 
 
   before("funding setup", async () => {
     const signature = await provider.connection.requestAirdrop(
@@ -67,8 +68,8 @@ describe("nft-vault", () => {
         .accountsStrict({
           metaticketAuthority: metaticket_authority.publicKey,
           metaticketNftVault: metaticketNFTVault,
+          ticketIssue: 
           systemProgram: anchor.web3.SystemProgram.programId,
-          rent: SYSVAR_RENT_PUBKEY,
         })
         .signers([metaticket_authority])
         .rpc();

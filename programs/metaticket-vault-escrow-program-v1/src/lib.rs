@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{token::{TokenAccount, Mint, Token, Transfer, SetAuthority}, associated_token::AssociatedToken};
+use anchor_spl::{token::{TokenAccount, Mint, Token, Transfer, SetAuthority}, associated_token::AssociatedToken, token_interface::Token2022};
 
 declare_id!("3NGfXZScUbEa57UNnSU95qM7Pu72DwsvHUPo7ca1rxvc");
 
@@ -12,9 +12,16 @@ pub mod metaticket_vault_escrow_program_v1 {
         metaticket_nft_vault.metaticket_authority = ctx.accounts.metaticket_authority.key();
         metaticket_nft_vault.bump = *ctx.bumps.get("vault").unwrap();
 
+        let ticket_issue = &mut ctx.accounts.ticket_issue;
+
+        ticket_issue.issue += 1;
+
+        msg!("Initialized new vault. Current id value for vault is: {}!", ticket_issue.issue);
+
+
         ctx.accounts.ticket_issue.issue.checked_add(1);
 
-
+    
         Ok(())
     }
 
@@ -25,13 +32,13 @@ pub mod metaticket_vault_escrow_program_v1 {
         Ok(())
     }
 
-    pub fn metaticket_clawback(ctx: Context<MetaTicketCancelEvent>) -> Result<()> {
-      
+    pub fn metaticket_cancel_event(ctx: Context<MetaTicketCancelEvent>) -> Result<()> {
+    
         Ok(())
     }
 
 
-    pub fn user_buy_ticket(ctx: Context<UserBuyTickets>) -> Result<()> {
+    pub fn user_buy_metaticket(ctx: Context<UserBuyTickets>) -> Result<()> {
         Ok(())
     }
 
@@ -43,7 +50,7 @@ pub mod metaticket_vault_escrow_program_v1 {
 pub struct Vault {
     pub metaticket_authority: Pubkey,
     pub bump: u8,
-    pub total_nfts_sent_to_vault: u64,
+    pub issue: u64,
 }
 
 
@@ -66,7 +73,7 @@ pub struct TicketIssue {
 
 
 #[derive(Accounts)]
-#[instruction(escrow_seed: String)]
+#[instruction(escrow_seed: String, issue: u64)]
 
 pub struct InitializeMetaTicketVault<'info> {
     #[account(mut)]
@@ -74,28 +81,48 @@ pub struct InitializeMetaTicketVault<'info> {
     #[account(
         init,
         space = 8 + Vault::INIT_SPACE, 
-        seeds = [b"vault".as_ref(), metaticket_authority.key().as_ref(), ticket_issue.issue.to_le_bytes()], bump, 
+        seeds = [b"vault".as_ref(), metaticket_authority.key().as_ref(), issue.to_le_bytes().as_ref()], bump, 
         payer = metaticket_authority,
     )]
     pub metaticket_nft_vault: Account<'info, Vault>,
-    #[account(
-        init, 
-        payer = metaticket_authority,
-        seeds = [b"ticket_issue", metaticket_authority.key().as_ref(), ],
-        bump,
-        token::mint = mint,
-        token::authority = metaticket_authority,
-
-    )]
-    
+    #[account(mut)]
     pub ticket_issue: Account<'info, TicketIssue>,  
-    pub system_program: Program<'info, System>,
-    pub rent: Sysvar<'info, Rent>,
+    pub system_program: Program<'info, System>
 }
 
 
 #[derive(Accounts)]
-pub struct MetaTicketMintToVault {
+pub struct MetaTicketMintToVault <'info> {
+    #[account(mut)]
+    pub metaticket_authority: Signer<'info>,
+    #[account(mut)]
+    pub metaticket_nft_vault: Account<'info, Vault>,
+    pub ticket_issue: Account<'info, TicketIssue>, 
+    #[account(mut)]
+    pub metaticket_mint: Account<'info, MintNFT>,
+    #[account(
+        init,
+        payer = metaticket_authority,
+        associated_token::mint = metaticket_mint,
+        associated_token::authority = metaticket_authority
+    )]
+    pub nft_vault_assoc_token_account: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        seeds = [
+            b"metaticket_mint".as_ref(),
+            metaticket_mint.key().as_ref(),
+            metaticket_authority.key().as_ref()
+        ],
+        bump = metaticket_mint.bump,
+        close = metaticket_authority
+    )]
+
+    pub mint_nft: Account<'info, MintNFT>,
+    pub token_program: Program<'info, Token2022>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>
+
 
 }
 
@@ -111,6 +138,8 @@ pub struct MetaTicketCancelEvent{
 pub struct UserBuyTickets {
 
 }
+
+
 
 
 
