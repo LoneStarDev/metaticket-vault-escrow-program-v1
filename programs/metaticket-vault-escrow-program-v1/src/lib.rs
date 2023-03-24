@@ -92,10 +92,14 @@ pub struct InitializeMetaTicketVault<'info> {
 
 
 #[derive(Accounts)]
+#[instruction(issue: u64)]
 pub struct MetaTicketMintToVault <'info> {
     #[account(mut)]
     pub metaticket_authority: Signer<'info>,
-    #[account(mut)]
+    #[account(
+        seeds = [b"vault".as_ref(), metaticket_authority.key().as_ref(), issue.to_le_bytes().as_ref()],
+        bump = metaticket_nft_vault.bump
+    )]
     pub metaticket_nft_vault: Account<'info, Vault>,
     pub ticket_issue: Account<'info, TicketIssue>, 
     #[account(mut)]
