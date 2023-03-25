@@ -10,18 +10,16 @@ pub mod metaticket_vault_escrow_program_v1 {
     pub fn initialize_ticket_manager(ctx: Context<InitializeMetaTicketManager>) -> Result<()> {
 
                             // create a new account with a series of 0 //
-        let metaticket_manager = &mut ctx.accounts.metaticket_master;
+        let metaticket_manager = &mut ctx.accounts.metaticket_manager;
         metaticket_manager.id = 0;
         metaticket_manager.bump = *ctx.bumps.get("metaticket_manager").unwrap();
-
-
-    
 
         Ok(())
     }
 
     
-    pub fn metaticket_initialize_minting_setup(ctx: Context<MetaTicketMintToVault>, id: u64) -> Result<()> {
+    pub fn metaticket_initialize_minting_setup(ctx: Context<MetaTicketMintSetup>, id: u64) -> Result<()> {
+
                             // Increment MetaTicket Manager account
         ctx.accounts.metaticket_manager.id = match ctx.accounts.metaticket_manager.id.checked_add(1) {
             Some(v) => v,
@@ -34,7 +32,7 @@ pub mod metaticket_vault_escrow_program_v1 {
                             // Set mint id and bump
         ctx.accounts.metaticket_mint_authority.id = id;
         let metaticket_mint_authority = &mut ctx.accounts.metaticket_mint_authority;
-        metaticket_mint_authority.bump = *ctx.bumps.get("mint").unwrap();
+        metaticket_mint_authority.bump = *ctx.bumps.get("mint_auth").unwrap();
 
                             // create a new vault associated with the mint authority //
         let metaticket_nft_vault = &mut ctx.accounts.metaticket_nft_vault;
@@ -45,9 +43,7 @@ pub mod metaticket_vault_escrow_program_v1 {
         Ok(())
     }
 
-
-
-    pub fn metaticket_cancel_event(ctx: Context<MetaTicketClawbackNFTs>) -> Result<()> {
+    pub fn metaticket_mint_tickets_to_vault(ctx: Context<MintToVault>) -> Result<()> {
     
         Ok(())
     }
@@ -104,7 +100,7 @@ pub struct InitializeMetaTicketManager<'info> {
         bump
     )]
 
-    pub metaticket_master: Account<'info, MetaTicketManager>,  
+    pub metaticket_manager: Account<'info, MetaTicketManager>,  
     pub system_program: Program<'info, System>
 }
 
@@ -114,7 +110,7 @@ pub struct InitializeMetaTicketManager<'info> {
 
 #[derive(Accounts)]
 #[instruction(id: u64)]
-pub struct MetaTicketMintToVault <'info> {
+pub struct MetaTicketMintSetup <'info> {
     #[account(mut)]
     pub metaticket_authority: Signer<'info>,
     #[account(
@@ -128,7 +124,7 @@ pub struct MetaTicketMintToVault <'info> {
         init,
         payer = metaticket_authority,
         space =  8 + TicketMintAuthority::INIT_SPACE,
-        seeds = [b"mint", metaticket_manager.key().as_ref(), &id.to_le_bytes()], 
+        seeds = [b"mint_auth", metaticket_manager.key().as_ref(), &id.to_le_bytes()], 
         bump 
     
     )]
@@ -136,7 +132,7 @@ pub struct MetaTicketMintToVault <'info> {
     #[account(
         init,
         space = 8 + Vault::INIT_SPACE, 
-        seeds = [b"vault".as_ref(), metaticket_authority.key().as_ref(), id.to_le_bytes().as_ref()], bump, 
+        seeds = [b"vault".as_ref(), metaticket_mint_authority.key().as_ref(), id.to_le_bytes().as_ref()], bump, 
         payer = metaticket_authority,
     )]
     pub metaticket_nft_vault: Account<'info, Vault>,
@@ -146,15 +142,16 @@ pub struct MetaTicketMintToVault <'info> {
 
 
 
-
-
-
-
 #[derive(Accounts)]
 
-pub struct MetaTicketClawbackNFTs{
+pub struct MintToVault{
    
 }
+
+
+
+
+
 
 #[derive(Accounts)]
 
