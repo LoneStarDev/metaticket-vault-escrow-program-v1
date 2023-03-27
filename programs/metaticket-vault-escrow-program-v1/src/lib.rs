@@ -23,7 +23,7 @@ pub mod metaticket_vault_escrow_program_v1 {
 
 // now we increment a metatciket manager id and create a metaticket mint authority account from the manager.
 
-    pub fn initialize_minting(ctx: Context<MetaTicketMintSetup>, id: u64) -> Result<()> {
+    pub fn minting_auth_and_escrow_state(ctx: Context<MetaTicketMintSetup>, id: u64) -> Result<()> {
 
                             // Increment MetaTicket Manager account
         ctx.accounts.metaticket_manager.id = match ctx.accounts.metaticket_manager.id.checked_add(1) {
@@ -204,8 +204,6 @@ pub struct InitializeEscrow<'info>{
     pub metaticket_authority: Signer<'info>,
     pub mint: Account<'info, Mint>,
     pub metaticket_mint_authority: Account<'info, TicketMintAuthority>,
-    
-
 /** 
  * * CREATE A VAULT ACCOUNT THAT IS AN ASSOCIATED TOKEN ACCOUNT *
  * * THIS IS WHERE THE ENTIRE COLLECTION WILL BE MINTED TO *
@@ -219,7 +217,6 @@ pub struct InitializeEscrow<'info>{
         token::authority = metaticket_authority,
     )]
     pub metaticket_nft_vault: Account<'info, TokenAccount>,
-
 /** 
  * * KEEP RACK OF THE ESCROW STATE WITH A STATE ACCOUNT *
 */
@@ -230,7 +227,6 @@ pub struct InitializeEscrow<'info>{
         payer = metaticket_authority,
         space = EscrowState::INIT_SPACE
     )]
-
     pub escrow_state: Account<'info, EscrowState>,
     pub metaticket_deposit_token_account: Account<'info, TokenAccount>,
     pub metaticket_receive_token_account: Account<'info, TokenAccount>,
