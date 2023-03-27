@@ -6,16 +6,9 @@ use anchor_spl::token::{
 
 declare_id!("3NGfXZScUbEa57UNnSU95qM7Pu72DwsvHUPo7ca1rxvc");
 
-
-
-
-
-
 #[program]
 pub mod metaticket_vault_escrow_program_v1 {
     use super::*;
-
-
 
 
 // first we initialize a metatickt manager account 
@@ -27,7 +20,6 @@ pub mod metaticket_vault_escrow_program_v1 {
         metaticket_manager.bump = *ctx.bumps.get("metaticket_manager").unwrap();
         Ok(())
     }
-
 
 // now we increment a metatciket manager id and create a metaticket mint authority account from the manager.
 
@@ -51,10 +43,6 @@ pub mod metaticket_vault_escrow_program_v1 {
         let escrow_state = &mut ctx.accounts.escrow_state;
         escrow_state.bump = *ctx.bumps.get("escrow_state").unwrap();
 
-
-
-
-        
 
         Ok(())
     }
@@ -209,8 +197,6 @@ pub struct MetaTicketMintSetup <'info> {
 }
 
 
-
-
 #[derive(Accounts)]
 #[instruction(id: u64)]
 pub struct InitializeEscrow<'info>{
@@ -252,8 +238,6 @@ pub struct InitializeEscrow<'info>{
     pub system_program: Program<'info, System>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub token_program: Program<'info, Token>,
-
-
 }
 
 #[derive(Accounts)]
@@ -293,20 +277,11 @@ pub struct Exchange<'info> {
 }
 
 
-
-
-
 #[error_code]
 pub enum MetaTicketError {
     #[msg("Invalid series ID")]
     InvalidSeriesId,
 }
-
-
-
-
-
-
 
 
 impl<'info> InitializeEscrow<'info> {
