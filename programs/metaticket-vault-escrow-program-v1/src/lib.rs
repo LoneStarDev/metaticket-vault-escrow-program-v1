@@ -192,7 +192,7 @@ pub struct MetaTicketMintSetup <'info> {
         seeds = [b"escrow_state", metaticket_manager.key().as_ref(), &id.to_le_bytes()], 
         bump 
     )]
-    pub escrow_state: Account<'info, EscrowState>,
+    pub escrow_state: Box<Account<'info, EscrowState>>,
     pub system_program: Program<'info, System>
 }
 
@@ -228,8 +228,8 @@ pub struct InitializeEscrow<'info>{
         space = EscrowState::INIT_SPACE
     )]
     pub escrow_state: Account<'info, EscrowState>,
-    pub metaticket_deposit_token_account: Account<'info, TokenAccount>,
-    pub metaticket_receive_token_account: Account<'info, TokenAccount>,
+    pub metaticket_deposit_token_account:Box<Account<'info, TokenAccount>>,
+    pub metaticket_receive_token_account:Box<Account<'info, TokenAccount>>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub system_program: Program<'info, System>,
     /// CHECK: This is not dangerous because we don't read or write from this account
@@ -242,13 +242,13 @@ pub struct InitializeEscrow<'info>{
 pub struct Exchange<'info> {
     pub taker: Signer<'info>,
     #[account(mut)]
-    pub taker_deposit_token_account: Account<'info, TokenAccount>,
+    pub taker_deposit_token_account: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
-    pub taker_receive_token_account: Account<'info, TokenAccount>,
+    pub taker_receive_token_account: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
-    pub metaticket_deposit_token_account: Account<'info, TokenAccount>,
+    pub metaticket_deposit_token_account: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
-    pub metaticket_receive_token_account: Account<'info, TokenAccount>,
+    pub metaticket_receive_token_account: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub metaticket_authority: Signer<'info>,
     pub metaticket_mint_authority: Account<'info, TicketMintAuthority>,
@@ -258,7 +258,7 @@ pub struct Exchange<'info> {
         constraint = escrow_state.metaticket_receive_token_account == *metaticket_receive_token_account.to_account_info().key,
         constraint = escrow_state.metaticket_authority == *metaticket_authority.key,
     )]
-    pub escrow_state: Account<'info, EscrowState>,
+    pub escrow_state: Box<Account<'info, EscrowState>>,
     #[account(
         seeds = [b"vault".as_ref(), metaticket_mint_authority.key().as_ref(), &id.to_le_bytes()],
         bump,
