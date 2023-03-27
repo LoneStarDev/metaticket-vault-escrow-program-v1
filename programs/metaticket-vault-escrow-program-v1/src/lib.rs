@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{
-    self, spl_token::instruction::AuthorityType, CloseAccount, Mint, SetAuthority, Token,
+    self, spl_token::instruction::AuthorityType, Mint, SetAuthority, Token,
     TokenAccount, Transfer,
 };
 
@@ -284,6 +284,7 @@ pub struct Exchange<'info> {
         bump,
     )]
     pub metaticket_nft_vault: Account<'info, TokenAccount>,
+    /// CHECK: This is not dangerous because we don't read or write from this account
     pub vault_authority: AccountInfo<'info>,
      /// CHECK: This is not dangerous because we don't read or write from this account
     pub system_program: Program<'info, System>,
