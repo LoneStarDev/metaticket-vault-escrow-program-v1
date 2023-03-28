@@ -49,13 +49,17 @@ pub mod metaticket_vault_escrow_program_v1 {
 
     pub fn initialize_escrow(ctx: Context<InitializeEscrow,>,id:u64, metaticket_amount_nft_to_send_taker: u64, taker_amount_usdc_to_metaticket: u64) -> Result<()> {
 
-        ctx.accounts.escrow_state.metaticket_authority = *ctx.accounts.metaticket_authority.key;
-        ctx.accounts.escrow_state.metaticket_deposit_token_account = *ctx.accounts.metaticket_deposit_token_account.to_account_info().key;
-        ctx.accounts.escrow_state.metaticket_receive_token_account = *ctx.accounts.metaticket_receive_token_account.to_account_info().key;
-        ctx.accounts.escrow_state.metaticket_amount_nft_to_send_taker = metaticket_amount_nft_to_send_taker;
-        ctx.accounts.escrow_state.taker_amount_usdc_to_metaticket = taker_amount_usdc_to_metaticket;
+        let escrow_state = &mut ctx.accounts.escrow_state;
+        escrow_state.metaticket_authority = *ctx.accounts.metaticket_authority.key;
+        escrow_state.metaticket_deposit_token_account = *ctx.accounts.metaticket_deposit_token_account.to_account_info().key;
+        escrow_state.metaticket_receive_token_account = *ctx.accounts.metaticket_receive_token_account.to_account_info().key;
+        escrow_state.metaticket_amount_nft_to_send_taker = metaticket_amount_nft_to_send_taker;
+        escrow_state.taker_amount_usdc_to_metaticket = taker_amount_usdc_to_metaticket;
 
         
+        if metaticket_amount_nft_to_send_taker > 4 {
+            return err!(MetaTicketError::TicketLimitReached)
+        }
         
         ctx.accounts.metaticket_mint_authority.id = id;
         let id_bytes = id.to_le_bytes();
@@ -277,7 +281,9 @@ pub struct Exchange<'info> {
 pub enum MetaTicketError {
     #[msg("Invalid series ID")]
     InvalidSeriesId,
-}
+
+    #[msg("Ticket Purchase Limit Has Been Reached")]
+    TicketLimitReached,}
 
 
 impl<'info> InitializeEscrow<'info> {
