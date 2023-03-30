@@ -12,12 +12,12 @@ pub mod metaticket_vault_escrow_program_v1 {
 
 
 // first we initialize a metatickt manager account 
-    pub fn initialize_metaticket_manager(ctx: Context<InitializeMetaTicketManager>) -> Result<()> {
+    pub fn initialize_metaticket_manager(ctx: Context<InitializeMetaTicketManager>, id:u64) -> Result<()> {
 
                             // create a new account with a series of 0 //
         let metaticket_manager = &mut ctx.accounts.metaticket_manager;
         metaticket_manager.id = 0;
-        metaticket_manager.bump = *ctx.bumps.get("metaticket_manager").unwrap();
+        metaticket_manager.bump = *ctx.bumps.get("manager").unwrap();
         Ok(())
     }
 
@@ -208,10 +208,7 @@ pub struct InitializeEscrow<'info>{
     pub metaticket_authority: Signer<'info>,
     pub mint: Account<'info, Mint>,
     pub metaticket_mint_authority: Account<'info, TicketMintAuthority>,
-/** 
- * * CREATE A VAULT ACCOUNT THAT IS AN ASSOCIATED TOKEN ACCOUNT *
- * * THIS IS WHERE THE ENTIRE COLLECTION WILL BE MINTED TO *
-*/
+
     #[account(
         init,
         seeds = [b"vault".as_ref(), metaticket_mint_authority.key().as_ref(), &id.to_le_bytes()],
@@ -221,9 +218,7 @@ pub struct InitializeEscrow<'info>{
         token::authority = metaticket_authority,
     )]
     pub metaticket_nft_vault: Account<'info, TokenAccount>,
-/** 
- * * KEEP RACK OF THE ESCROW STATE WITH A STATE ACCOUNT *
-*/
+
     #[account(
         init,
         seeds = [b"state".as_ref(), &id.to_le_bytes()],
@@ -277,13 +272,6 @@ pub struct Exchange<'info> {
 }
 
 
-#[error_code]
-pub enum MetaTicketError {
-    #[msg("Invalid series ID")]
-    InvalidSeriesId,
-
-    #[msg("Ticket Purchase Limit Has Been Reached")]
-    TicketLimitReached,}
 
 
 impl<'info> InitializeEscrow<'info> {
@@ -326,3 +314,13 @@ impl<'info> Exchange<'info> {
         CpiContext::new(self.token_program.to_account_info(), cpi_accounts)
     }
  }
+
+ #[error_code]
+ pub enum MetaTicketError {
+     #[msg("Invalid series ID")]
+     InvalidSeriesId,
+ 
+     #[msg("Ticket Purchase Limit Has Been Reached")]
+     TicketLimitReached,
+ }
+ 
