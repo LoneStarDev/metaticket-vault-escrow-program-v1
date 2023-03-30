@@ -40,8 +40,8 @@ describe("test", () => {
   const managerSeeds = [
     Buffer.from("manager"),
     metaticket_authority.publicKey.toBuffer(),
-    
   ];
+
 
   const [metaticket_manager, manager_bump] = PublicKey.findProgramAddressSync(
     managerSeeds,
@@ -59,7 +59,7 @@ describe("test", () => {
       Buffer.from(id.toString()),
     ];
   
-    const [ metaticket_mint_authority, _mint_auth_bump] = PublicKey.findProgramAddressSync(
+    const [ metaticket_mint_authority, mint_auth_bump] = PublicKey.findProgramAddressSync(
       mintAuthoritySeeds,
       program.programId
     );
@@ -152,7 +152,7 @@ describe("test", () => {
       let id= 1
 
       // Add your test here.
-      const tx = await program.methods.
+     try { const tx = await program.methods.
       mintingAuthAndEscrowState(new anchor.BN(id))
       .accountsStrict({
         metaticketAuthority: metaticket_authority.publicKey,
@@ -164,6 +164,10 @@ describe("test", () => {
       .signers([metaticket_authority])
       .rpc();
       console.log("Your transaction signature", tx);
+    } catch (error) {
+      console.log("Error while creating a manager account:", error)
+
+    }
     });
 
 

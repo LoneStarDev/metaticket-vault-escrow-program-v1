@@ -16,8 +16,9 @@ pub mod metaticket_vault_escrow_program_v1 {
 
                             // create a new account with a series of 0 //
         let metaticket_manager = &mut ctx.accounts.metaticket_manager;
+        metaticket_manager.id = id;
         metaticket_manager.id = 0;
-        metaticket_manager.bump = *ctx.bumps.get("manager").unwrap();
+        metaticket_manager.bump = *ctx.bumps.get("metaticket_manager").unwrap();
         Ok(())
     }
 
@@ -37,7 +38,7 @@ pub mod metaticket_vault_escrow_program_v1 {
                             // Save mint id and bump
         ctx.accounts.metaticket_mint_authority.id = id;
         let metaticket_mint_authority = &mut ctx.accounts.metaticket_mint_authority;
-        metaticket_mint_authority.bump = *ctx.bumps.get("mint_auth").unwrap();
+        metaticket_mint_authority.bump = *ctx.bumps.get("metaticket_mint_authority").unwrap();
 
                              // Save escrow bump
         let escrow_state = &mut ctx.accounts.escrow_state;
@@ -155,7 +156,7 @@ pub struct InitializeMetaTicketManager<'info> {
         init,
         payer = metaticket_authority,
         space = 8 + MetaTicketManager::INIT_SPACE,
-        seeds = [b"manager", metaticket_authority.key().as_ref()
+        seeds = [b"manager".as_ref(), metaticket_authority.key().as_ref()
         ],
         bump
     )]
@@ -173,7 +174,7 @@ pub struct MetaTicketMintSetup <'info> {
 
     #[account(
         mut,
-        seeds = [b"manager", metaticket_authority.key().as_ref()], 
+        seeds = [b"manager".as_ref(), metaticket_authority.key().as_ref()], 
         bump = metaticket_manager.bump
     
     )]
@@ -183,7 +184,7 @@ pub struct MetaTicketMintSetup <'info> {
         init,
         payer = metaticket_authority,
         space =  8 + TicketMintAuthority::INIT_SPACE,
-        seeds = [b"mint_auth", metaticket_manager.key().as_ref(), &id.to_le_bytes()], 
+        seeds = [b"mint_auth".as_ref(), metaticket_manager.key().as_ref(), &id.to_le_bytes()], 
         bump 
     
     )]
@@ -193,7 +194,7 @@ pub struct MetaTicketMintSetup <'info> {
         init,
         payer = metaticket_authority,
         space =  8 + EscrowState::INIT_SPACE,
-        seeds = [b"escrow_state", metaticket_manager.key().as_ref(), &id.to_le_bytes()], 
+        seeds = [b"escrow_state".as_ref(), metaticket_manager.key().as_ref(), &id.to_le_bytes()], 
         bump 
     )]
     pub escrow_state: Box<Account<'info, EscrowState>>,
