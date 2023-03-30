@@ -31,9 +31,7 @@ describe("test", () => {
   });
 
 
-  //SET ID to 1, which will be the value of the first vault created by MetaTicket
-  let id = 0;
-  console.log(id);
+
 
   // DETERMINE THE METATICKET MANAGER WITH THE PDA
 
@@ -50,13 +48,17 @@ describe("test", () => {
   console.log("This is the Metaticket Manager PDA", metaticket_manager);
 
 
+
+    //SET ID to 1, which will be the value of the first vault created by MetaTicket
+    let id = 1;
+    console.log(id);
    // DETERMINE THE MINT AUTHORITY  PDA
     // THIS WILL BE THE AUTHORITY WE USE TO MINT TICKETS FOR EACH COLLECTION
 
     const mintAuthoritySeeds = [
       Buffer.from("mint_auth"),
       metaticket_manager.toBuffer(),
-      Buffer.from(id.toString()),
+      Buffer.from(new anchor.BN(id).toArrayLike(Buffer, "le", 8)),
     ];
   
     const [ metaticket_mint_authority, mint_auth_bump] = PublicKey.findProgramAddressSync(
@@ -94,7 +96,7 @@ describe("test", () => {
   const seeds = [
     Buffer.from("escrow_state"),
     metaticket_manager.toBuffer(),
-    Buffer.from(id.toString()),
+    Buffer.from(new anchor.BN(id).toArrayLike(Buffer, "le", 8)),
   ];
 
   const [escrow_state, escrow_bump] = PublicKey.findProgramAddressSync(
@@ -107,11 +109,7 @@ describe("test", () => {
   // THIS WONT BE IMPLIMENTED BECAUSE TEST RUNS FRESH EVERYTIME
   //SOLUTION?
 
-  function incrementId() {
-    id += 1;
-  }
-  incrementId();
-  console.log(id);
+
 
 
 
