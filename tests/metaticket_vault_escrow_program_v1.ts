@@ -75,19 +75,6 @@ describe("test", () => {
     );
   });
 
-  before("before call", async () => {
-    
-    const dev_connection = new Connection('https://api.devnet.solana.com', commitment);
-    const signature = await dev_connection.requestAirdrop(metaticket_authority.publicKey, 10000000000);
-    const latestBlockhash = await dev_connection.getLatestBlockhash();
-    await dev_connection.confirmTransaction(
-      {
-        signature,
-        ...latestBlockhash,
-      },
-      commitment
-    );
-  });
 
   before("before call", async () => {
   
@@ -147,6 +134,16 @@ describe("test", () => {
   );
   console.log("This is the escrow state PDA address", escrow_state);
 
+  // DETERMINE THE VAULT AUTHORITY STATE PDA
+  const vaultAuthoritySeeds = [
+    Buffer.from("auth"),
+  ];
+
+  const [vault_authority, vault_authority_bump] = PublicKey.findProgramAddressSync(
+    vaultAuthoritySeeds,
+    program.programId
+  );
+  console.log("This is the vault authority PDA", vault_authority);
 
 
 
@@ -212,9 +209,9 @@ describe("test", () => {
       let test = await getMint(connection, mint_nft.publicKey, null, TOKEN_PROGRAM_ID);
       console.log(test);
   
-      let metaticket_nft_ata = await getOrCreateAssociatedTokenAccount(connection, metaticket_authority, mint_nft.publicKey, metaticket_vault.publicKey, false, undefined, undefined, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID)
+      let metaticket_nft_ata = await getOrCreateAssociatedTokenAccount(connection, metaticket_authority, mint_nft.publicKey, vault_authority, true, undefined, undefined, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID)
   
-      let mint_to_sig = await mintToChecked(connection, metaticket_authority, mint_nft.publicKey, metaticket_nft_ata.address, metaticket_mint_authority, 200e6, 0, [], undefined, TOKEN_PROGRAM_ID);
+      let mint_to_sig = await mintToChecked(connection, metaticket_authority, mint_nft.publicKey,metaticket_vault.publicKey, metaticket_mint_authority,50, 0, [], undefined, TOKEN_PROGRAM_ID);
   
       console.log(mint_to_sig);
       console.log(metaticket_nfts);
