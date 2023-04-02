@@ -12,11 +12,10 @@ pub mod metaticket_vault_escrow_program_v1 {
 
 
 // first we initialize a metatickt manager account 
-    pub fn initialize_metaticket_manager(ctx: Context<InitializeMetaTicketManager>, id:u64) -> Result<()> {
+    pub fn initialize_metaticket_manager(ctx: Context<InitializeMetaTicketManager>) -> Result<()> {
 
                             // create a new account with a series of 0 //
         let metaticket_manager = &mut ctx.accounts.metaticket_manager;
-        metaticket_manager.id = id;
         metaticket_manager.id = 0;
         metaticket_manager.bump = *ctx.bumps.get("metaticket_manager").unwrap();
         Ok(())
@@ -48,12 +47,12 @@ pub mod metaticket_vault_escrow_program_v1 {
         Ok(())
     }
 
-    pub fn initialize_escrow(ctx: Context<InitializeEscrow,>,id:u64, metaticket_amount_nft_to_send_taker: u64, taker_amount_usdc_to_metaticket: u64) -> Result<()> {
+    pub fn initialize_vault_and_escrow(ctx: Context<InitializeEscrow,>,id:u64, metaticket_amount_nft_to_send_taker: u64, taker_amount_usdc_to_metaticket: u64) -> Result<()> {
 
         let escrow_state = &mut ctx.accounts.escrow_state;
         escrow_state.metaticket_authority = *ctx.accounts.metaticket_authority.key;
-        escrow_state.metaticket_deposit_token_account = *ctx.accounts.metaticket_deposit_token_account.to_account_info().key;
-        escrow_state.metaticket_receive_token_account = *ctx.accounts.metaticket_receive_token_account.to_account_info().key;
+        escrow_state.metaticket_nft_atas_to_vault = *ctx.accounts.metaticket_nft_atas_to_vault.to_account_info().key;
+        escrow_state.metaticket_receive_usdc_account = *ctx.accounts.metaticket_receive_usdc_account.to_account_info().key;
         escrow_state.metaticket_amount_nft_to_send_taker = metaticket_amount_nft_to_send_taker;
         escrow_state.taker_amount_usdc_to_metaticket = taker_amount_usdc_to_metaticket;
 
@@ -137,14 +136,13 @@ pub struct TicketMintAuthority {
 pub struct EscrowState {
     pub bump: u8,
     pub metaticket_authority: Pubkey,
-    pub metaticket_deposit_token_account: Pubkey,
-    pub metaticket_receive_token_account: Pubkey,
+    pub metaticket_nft_atas_to_vault: Pubkey,
+    pub metaticket_receive_usdc_account: Pubkey,
     pub metaticket_amount_nft_to_send_taker: u64,
     pub taker_amount_usdc_to_metaticket: u64,
 }
 
 #[derive(Accounts)]
-#[instruction(id: u64)]
 
 pub struct InitializeMetaTicketManager<'info> {
     
@@ -210,14 +208,7 @@ pub struct InitializeEscrow<'info>{
     pub mint: Account<'info, Mint>,
     pub metaticket_mint_authority: Account<'info, TicketMintAuthority>,
 
-    #[account(
-        init,
-        seeds = [b"vault".as_ref(), metaticket_mint_authority.key().as_ref(), &id.to_le_bytes()],
-        bump,
-        payer = metaticket_authority,
-        token::mint = mint,
-        token::authority = metaticket_authority,
-    )]
+    #[account(mut)]
     pub metaticket_nft_vault: Account<'info, TokenAccount>,
 
     #[account(
@@ -228,8 +219,8 @@ pub struct InitializeEscrow<'info>{
         space = EscrowState::INIT_SPACE
     )]
     pub escrow_state: Account<'info, EscrowState>,
-    pub metaticket_deposit_token_account:Box<Account<'info, TokenAccount>>,
-    pub metaticket_receive_token_account:Box<Account<'info, TokenAccount>>,
+    pub metaticket_nft_atas_to_vault:Box<Account<'info, TokenAccount>>,
+    pub metaticket_receive_usdc_account: Box<Account<'info, TokenAccount>>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub system_program: Program<'info, System>,
     /// CHECK: This is not dangerous because we don't read or write from this account
@@ -246,16 +237,16 @@ pub struct Exchange<'info> {
     #[account(mut)]
     pub taker_receive_token_account: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
-    pub metaticket_deposit_token_account: Box<Account<'info, TokenAccount>>,
+    pub metaticket_nft_atas_to_vault:Box<Account<'info, TokenAccount>>,
     #[account(mut)]
-    pub metaticket_receive_token_account: Box<Account<'info, TokenAccount>>,
+    pub metaticket_receive_usdc_account: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub metaticket_authority: Signer<'info>,
     pub metaticket_mint_authority: Account<'info, TicketMintAuthority>,
     #[account(
         mut,   constraint = escrow_state.taker_amount_usdc_to_metaticket == taker_deposit_token_account.amount,
-        constraint = escrow_state.metaticket_deposit_token_account == *metaticket_deposit_token_account.to_account_info().key,
-        constraint = escrow_state.metaticket_receive_token_account == *metaticket_receive_token_account.to_account_info().key,
+        constraint = escrow_state.metaticket_nft_atas_to_vault == *metaticket_nft_atas_to_vault.to_account_info().key,
+        constraint = escrow_state.metaticket_receive_usdc_account == *metaticket_receive_usdc_account.to_account_info().key,
         constraint = escrow_state.metaticket_authority == *metaticket_authority.key,
     )]
     pub escrow_state: Box<Account<'info, EscrowState>>,
@@ -300,7 +291,7 @@ impl<'info> Exchange<'info> {
     ) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
         let cpi_accounts = Transfer {
             from: self.taker_deposit_token_account.to_account_info(),
-            to: self.metaticket_receive_token_account.to_account_info(),
+            to: self.metaticket_receive_usdc_account.to_account_info(),
             authority: self.taker.to_account_info(),
         };
         CpiContext::new(self.token_program.to_account_info(), cpi_accounts)
