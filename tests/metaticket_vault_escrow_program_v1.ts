@@ -37,30 +37,6 @@ describe("test", () => {
 
  
 
-
-  // CREATE TOKEN ACCOUNTS TO RECEIVE USDC
-  async function createOrFetchUsdc(program, metaticket_authority) {
-    let USDC = anchor.web3.Keypair.generate();
-
-  
-  let MINT_KEY: anchor.web3.PublicKey;
-  try {
-      MINT_KEY = await createMint(
-          program.provider.connection,
-          metaticket_authority,
-          metaticket_authority.publicKey,
-          null,
-          6,
-          USDC
-      );
-  }
-  catch {
-      // if it's already init, we just use it: 
-      MINT_KEY = USDC.publicKey;
-  }
-  return MINT_KEY;
-}
-
   
   before("before call", async () => {
     //Airdrop 5 SOL to metaticket Auth
@@ -75,10 +51,23 @@ describe("test", () => {
     );
   });
 
+  before("before call", async () => {
+    //Airdrop 5 SOL to metaticket Auth
+    const signature = await connection.requestAirdrop(metaticket_mint_authority, 20000000000);
+    const latestBlockhash = await connection.getLatestBlockhash();
+    await connection.confirmTransaction(
+      {
+        signature,
+        ...latestBlockhash,
+      },
+      commitment
+    );
+  });
+  
 
   before("before call", async () => {
   
-    const signature = await connection.requestAirdrop(metaticket_vault.publicKey, 10000000000);
+    const signature = await connection.requestAirdrop(metaticket_vault.publicKey, 200000000000);
     const latestBlockhash = await connection.getLatestBlockhash();
     await connection.confirmTransaction(
       {
@@ -89,6 +78,19 @@ describe("test", () => {
     );
   });
 
+
+  before("before call", async () => {
+  
+    const signature = await connection.requestAirdrop(vault_authority, 200000000000);
+    const latestBlockhash = await connection.getLatestBlockhash();
+    await connection.confirmTransaction(
+      {
+        signature,
+        ...latestBlockhash,
+      },
+      commitment
+    );
+  });
 
 
   // DETERMINE THE METATICKET MANAGER WITH THE PDA
@@ -189,13 +191,9 @@ describe("test", () => {
     }
     });
 
+  it("Create Mock MetaTicket Collection", async () => {
 
-
-      // SETUP METAPLEX STORA
-    
-  it("Create mock MetaTicket Collection", async () => {
-
-      let metaticket_nfts = await createMint(
+      let metaticket_mint = await createMint(
         connection,
         metaticket_authority,
         metaticket_mint_authority,
@@ -205,26 +203,53 @@ describe("test", () => {
         null,
         TOKEN_PROGRAM_ID
       );
+
+      console.log(metaticket_mint)
   
       let test = await getMint(connection, mint_nft.publicKey, null, TOKEN_PROGRAM_ID);
       console.log(test);
   
-      let metaticket_nft_ata = await getOrCreateAssociatedTokenAccount(connection, metaticket_authority, mint_nft.publicKey, vault_authority, true, undefined, undefined, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID)
+      let metaticket_nft_ata_to_vault = await getOrCreateAssociatedTokenAccount(
+        connection, 
+        metaticket_authority, 
+        mint_nft.publicKey, 
+        metaticket_authority.publicKey, 
+        true, undefined, 
+        undefined, 
+        TOKEN_PROGRAM_ID, 
+        ASSOCIATED_TOKEN_PROGRAM_ID
+        )
   
-      let mint_to_sig = await mintToChecked(connection, metaticket_authority, mint_nft.publicKey,metaticket_vault.publicKey, metaticket_mint_authority,50, 0, [], undefined, TOKEN_PROGRAM_ID);
+      let mint_to_sig = await mintToChecked(
+        connection, 
+        metaticket_authority,
+         mint_nft.publicKey, 
+         metaticket_nft_ata_to_vault.address, 
+         metaticket_mint_authority, 
+         10, 
+         0, 
+         [],
+        undefined, 
+        TOKEN_PROGRAM_ID
+        );
   
       console.log(mint_to_sig);
-      console.log(metaticket_nfts);
+      console.log(metaticket_mint);
 
-      mintTo(
+      let mint_to_vault = await mintTo(
         connection,
         metaticket_authority,
-        metaticket_nfts,
+        metaticket_mint,
         metaticket_vault.publicKey,
         metaticket_mint_authority,
-        50
+        10
       )
+      console.log(mint_to_vault)
     });
+
+    
+
+
 
 
 
@@ -256,6 +281,7 @@ describe("test", () => {
     );
   });
 
+  
     it("Create mock USDC SPL Token for Takers Account", async () => {
 
       let USDC = await createMint(
@@ -287,7 +313,6 @@ describe("test", () => {
         usdc_authority,
         20
 
-        
       )
     });
 
