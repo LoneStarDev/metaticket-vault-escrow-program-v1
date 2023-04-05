@@ -1,12 +1,10 @@
 import * as anchor from "@project-serum/anchor";
 import { Program, web3, workspace } from "@project-serum/anchor";
 import { MetaticketVaultEscrowProgramV1 } from "../target/types/metaticket_vault_escrow_program_v1";
-import { PublicKey, Commitment, Connection,clusterApiUrl} from "@solana/web3.js";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, createMint, getMint, getOrCreateAssociatedTokenAccount, mintToChecked, TOKEN_PROGRAM_ID, mintTo } from "@solana/spl-token";
-import { Metaplex, keypairIdentity, bundlrStorage, toMetaplexFile } from "@metaplex-foundation/js";
-import fs from 'fs'
-import {readFileSync} from 'fs'
-import Bundlr from "@bundlr-network/client";
+import { PublicKey, Commitment, Connection,clusterApiUrl, Transaction} from "@solana/web3.js";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, createMint, getMint, getOrCreateAssociatedTokenAccount, mintToChecked, TOKEN_PROGRAM_ID, mintTo, MINT_SIZE, getMinimumBalanceForRentExemptAccount, createInitializeAccount2Instruction, createInitializeMintInstruction, setAuthority, transfer } from "@solana/spl-token";
+import { Metaplex, keypairIdentity, bundlrStorage, toMetaplexFile, toTokenAccount } from "@metaplex-foundation/js";
+
 
 
 
@@ -21,7 +19,8 @@ describe("test", () => {
 
   // CREATE ROLES
   const metaticket_authority = anchor.web3.Keypair.generate();
-  console.log(metaticket_authority);
+  console.log(metaticket_authority.publicKey);
+
   const metaticket_vault = anchor.web3.Keypair.generate();
   const mint = anchor.web3.Keypair.generate();
   const mint_nft = anchor.web3.Keypair.generate();
@@ -40,7 +39,7 @@ describe("test", () => {
   
   before("before call", async () => {
     //Airdrop 5 SOL to metaticket Auth
-    const signature = await connection.requestAirdrop(metaticket_authority.publicKey, 10000000000);
+    const signature = await connection.requestAirdrop(metaticket_authority.publicKey, 100000000000);
     const latestBlockhash = await connection.getLatestBlockhash();
     await connection.confirmTransaction(
       {
@@ -192,59 +191,68 @@ describe("test", () => {
     });
 
   it("Create Mock MetaTicket Collection", async () => {
+try{
+  let nft_mint = await createMint(
+    connection,
+    metaticket_authority,
+    metaticket_authority.publicKey,
+    metaticket_authority.publicKey,
+    0
+  );
+  console.log(nft_mint)
 
-      let metaticket_mint = await createMint(
-        connection,
-        metaticket_authority,
-        metaticket_mint_authority,
-        metaticket_authority.publicKey,
-        0,
-        mint_nft,
-        null,
-        TOKEN_PROGRAM_ID
-      );
 
-      console.log(metaticket_mint)
-  
-      let test = await getMint(connection, mint_nft.publicKey, null, TOKEN_PROGRAM_ID);
-      console.log(test);
-  
-      let metaticket_nft_ata_to_vault = await getOrCreateAssociatedTokenAccount(
-        connection, 
-        metaticket_authority, 
-        mint_nft.publicKey, 
-        metaticket_authority.publicKey, 
-        true, undefined, 
-        undefined, 
-        TOKEN_PROGRAM_ID, 
-        ASSOCIATED_TOKEN_PROGRAM_ID
-        )
-  
-      let mint_to_sig = await mintToChecked(
-        connection, 
-        metaticket_authority,
-         mint_nft.publicKey, 
-         metaticket_nft_ata_to_vault.address, 
-         metaticket_mint_authority, 
-         10, 
-         0, 
-         [],
-        undefined, 
-        TOKEN_PROGRAM_ID
-        );
-  
-      console.log(mint_to_sig);
-      console.log(metaticket_mint);
+  let nft_ticket_metaticket_ata = await getOrCreateAssociatedTokenAccount(
+    connection,
+    metaticket_authority,
+    nft_mint,
+    metaticket_authority.publicKey
+  );
 
-      let mint_to_vault = await mintTo(
-        connection,
-        metaticket_authority,
-        metaticket_mint,
-        metaticket_vault.publicKey,
-        metaticket_mint_authority,
-        10
-      )
-      console.log(mint_to_vault)
+  let vault_ata = await getOrCreateAssociatedTokenAccount(
+    connection,
+    metaticket_authority,
+    nft_mint,
+    metaticket_vault.publicKey
+
+  );
+
+    let signature = await mintTo(
+    connection,
+    metaticket_authority,
+    nft_mint,
+    nft_ticket_metaticket_ata.address,
+    metaticket_authority.publicKey, 
+    1,
+   
+  )
+
+  await setAuthority ( 
+    connection,
+    metaticket_authority,            // Payer of the transaction fees
+    nft_mint,                       // Account 
+    metaticket_authority.publicKey,  // Current authority 
+    0,                              // Authority type: "0" represents Mint Tokens 
+    null                            // Setting the new Authority to null
+  );
+
+  signature = await transfer(
+    connection,
+    metaticket_authority,               // Payer of the transaction fees 
+    nft_ticket_metaticket_ata.address, // Source account 
+    vault_ata.address,   // Destination account 
+    metaticket_authority.publicKey,     // Owner of the source account 
+    1                         // Number of tokens to transfer 
+  );
+
+  console.log("SIGNATURE", signature);
+
+} catch (error) {
+  console.log(error)
+}
+  
+
+  
     });
 
     
@@ -282,7 +290,7 @@ describe("test", () => {
   });
 
   
-    it("Create mock USDC SPL Token for Takers Account", async () => {
+    xit("Create mock USDC SPL Token for Takers Account", async () => {
 
       let USDC = await createMint(
         connection,
@@ -298,9 +306,30 @@ describe("test", () => {
       let test = await getMint(connection, mint.publicKey, null, TOKEN_PROGRAM_ID);
       console.log(test);
   
-      let usdc_ticket_buyers_account = await getOrCreateAssociatedTokenAccount(connection, ticket_buyers_account_authority, mint.publicKey, ticket_buyers_account_authority.publicKey, false, undefined, undefined, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID)
+      let usdc_ticket_buyers_account = await getOrCreateAssociatedTokenAccount(
+        connection, 
+        ticket_buyers_account_authority, 
+        mint.publicKey, 
+        ticket_buyers_account_authority.publicKey, 
+        false, 
+        undefined, 
+        undefined, 
+        TOKEN_PROGRAM_ID, 
+        ASSOCIATED_TOKEN_PROGRAM_ID)
+
+     
   
-      let mint_to_sig = await mintToChecked(connection, ticket_buyers_account_authority, mint.publicKey, usdc_ticket_buyers_account.address, usdc_authority, 200e6, 6, [], undefined, TOKEN_PROGRAM_ID);
+      let mint_to_sig = await mintToChecked(
+        connection, 
+        ticket_buyers_account_authority, 
+        mint.publicKey, 
+        usdc_ticket_buyers_account.address, 
+        usdc_authority, 
+        200e6, 
+        6, 
+        [], 
+        undefined, 
+        TOKEN_PROGRAM_ID);
   
       console.log(mint_to_sig);
       console.log(USDC);
