@@ -1,9 +1,8 @@
 import * as anchor from "@project-serum/anchor";
 import { Program, web3, workspace } from "@project-serum/anchor";
 import { MetaticketVaultEscrowProgramV1 } from "../target/types/metaticket_vault_escrow_program_v1";
-import { PublicKey, Commitment, Connection,clusterApiUrl, Transaction} from "@solana/web3.js";
+import { PublicKey, Commitment} from "@solana/web3.js";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, createMint, getMint, getOrCreateAssociatedTokenAccount, mintToChecked, TOKEN_PROGRAM_ID, mintTo, MINT_SIZE, getMinimumBalanceForRentExemptAccount, createInitializeAccount2Instruction, createInitializeMintInstruction, setAuthority, transfer } from "@solana/spl-token";
-import { Metaplex, keypairIdentity, bundlrStorage, toMetaplexFile, toTokenAccount } from "@metaplex-foundation/js";
 
 
 
@@ -39,7 +38,7 @@ describe("test", () => {
   
   before("before call", async () => {
     //Airdrop 5 SOL to metaticket Auth
-    const signature = await connection.requestAirdrop(metaticket_authority.publicKey, 100000000000);
+    const signature = await connection.requestAirdrop(metaticket_authority.publicKey, 5000000000);
     const latestBlockhash = await connection.getLatestBlockhash();
     await connection.confirmTransaction(
       {
@@ -52,7 +51,7 @@ describe("test", () => {
 
   before("before call", async () => {
     //Airdrop 5 SOL to metaticket Auth
-    const signature = await connection.requestAirdrop(metaticket_mint_authority, 20000000000);
+    const signature = await connection.requestAirdrop(metaticket_mint_authority, 5000000000);
     const latestBlockhash = await connection.getLatestBlockhash();
     await connection.confirmTransaction(
       {
@@ -66,7 +65,7 @@ describe("test", () => {
 
   before("before call", async () => {
   
-    const signature = await connection.requestAirdrop(metaticket_vault.publicKey, 200000000000);
+    const signature = await connection.requestAirdrop(metaticket_vault.publicKey, 10000000000000);
     const latestBlockhash = await connection.getLatestBlockhash();
     await connection.confirmTransaction(
       {
@@ -78,18 +77,6 @@ describe("test", () => {
   });
 
 
-  before("before call", async () => {
-  
-    const signature = await connection.requestAirdrop(vault_authority, 200000000000);
-    const latestBlockhash = await connection.getLatestBlockhash();
-    await connection.confirmTransaction(
-      {
-        signature,
-        ...latestBlockhash,
-      },
-      commitment
-    );
-  });
 
 
   // DETERMINE THE METATICKET MANAGER WITH THE PDA
@@ -164,7 +151,7 @@ describe("test", () => {
       .rpc();
       console.log("Your transaction signature", tx);
     } catch (error) {
-      console.log("Error while creating a manager account:", error)
+      console.log("Error while creating a Manager Account:", error)
     }
     });
   
@@ -185,7 +172,7 @@ describe("test", () => {
       .rpc();
       console.log("Your transaction signature", tx);
     } catch (error) {
-      console.log("Error while creating a manager account:", error)
+      console.log("Error while creating a Mint Authority Account:", error)
 
     }
     });
@@ -196,7 +183,7 @@ try{
     connection,
     metaticket_authority,
     metaticket_mint_authority,
-    metaticket_mint_authority,
+    metaticket_authority.publicKey,
     0
   );
   console.log(nft_mint)
@@ -210,14 +197,21 @@ try{
     true
   );
 
+
+
+  console.log("This is the metaticket nft ata!", nft_ticket_metaticket_ata)
+
   let vault_ata = await getOrCreateAssociatedTokenAccount(
     connection,
     metaticket_authority,
     nft_mint,
-    metaticket_vault.publicKey
-    
-
+    metaticket_mint_authority,
+    true
   );
+  console.log("This is the vault ata!", vault_ata)
+
+ 
+
 
     let signature = await mintTo(
     connection,
@@ -226,8 +220,10 @@ try{
     nft_ticket_metaticket_ata.address,
     metaticket_mint_authority, 
     1,
-   
   )
+
+  console.log("This is the signature of mint ata accounts for metaticket!", signature)
+
 
   await setAuthority ( 
     connection,
@@ -252,9 +248,6 @@ try{
 } catch (error) {
   console.log(error)
 }
-  
-
-  
     });
 
     
@@ -348,20 +341,7 @@ try{
     });
 
     
-    
-
-
- 
-
-
-
-
-
-
-
-    
-
-
+  
 // it("Initialized the escrow and vault", async () => {
 
 //   let id = 1
