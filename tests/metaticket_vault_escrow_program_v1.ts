@@ -195,8 +195,8 @@ try{
   let nft_mint = await createMint(
     connection,
     metaticket_authority,
-    metaticket_authority.publicKey,
-    metaticket_authority.publicKey,
+    metaticket_mint_authority,
+    metaticket_mint_authority,
     0
   );
   console.log(nft_mint)
@@ -206,7 +206,8 @@ try{
     connection,
     metaticket_authority,
     nft_mint,
-    metaticket_authority.publicKey
+    metaticket_mint_authority,
+    true
   );
 
   let vault_ata = await getOrCreateAssociatedTokenAccount(
@@ -214,6 +215,7 @@ try{
     metaticket_authority,
     nft_mint,
     metaticket_vault.publicKey
+    
 
   );
 
@@ -222,7 +224,7 @@ try{
     metaticket_authority,
     nft_mint,
     nft_ticket_metaticket_ata.address,
-    metaticket_authority.publicKey, 
+    metaticket_mint_authority, 
     1,
    
   )
@@ -231,7 +233,7 @@ try{
     connection,
     metaticket_authority,            // Payer of the transaction fees
     nft_mint,                       // Account 
-    metaticket_authority.publicKey,  // Current authority 
+    metaticket_mint_authority,  // Current authority 
     0,                              // Authority type: "0" represents Mint Tokens 
     null                            // Setting the new Authority to null
   );
@@ -241,7 +243,7 @@ try{
     metaticket_authority,               // Payer of the transaction fees 
     nft_ticket_metaticket_ata.address, // Source account 
     vault_ata.address,   // Destination account 
-    metaticket_authority.publicKey,     // Owner of the source account 
+    metaticket_mint_authority,     // Owner of the source account 
     1                         // Number of tokens to transfer 
   );
 
@@ -290,7 +292,7 @@ try{
   });
 
   
-    xit("Create mock USDC SPL Token for Takers Account", async () => {
+    it("Create mock USDC SPL Token for Takers Account", async () => {
 
       let USDC = await createMint(
         connection,
