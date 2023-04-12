@@ -1,0 +1,1 @@
+pub const NUM_TOKENS_TO_SEND_TO_VAULT: u64 = 10;
