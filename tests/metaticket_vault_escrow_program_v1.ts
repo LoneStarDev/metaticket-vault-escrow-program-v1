@@ -12,6 +12,14 @@ import {
   mintTo,
 } from "@solana/spl-token";
 
+import { 
+  PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID
+} from '@metaplex-foundation/mpl-token-metadata';
+
+
+
+
+
 
 describe("Metaticket Vault Program V1", () => {
 
@@ -51,6 +59,9 @@ describe("Metaticket Vault Program V1", () => {
   const tokenTitle = "MetaTicket Genesis Event"
   const tokenSymbol = "METAGEN"
   const tokenUri = "https://raw.githubusercontent.com/LoneStarDev/metaticket-vault-escrow-program-v1/main/uri.json"
+
+  // SET UP MINT KEYPAIR
+  const mintKeypair: anchor.web3.Keypair = anchor.web3.Keypair.generate();
 
 
   //FUNDING METATICKET PAYER ACCOUNT
@@ -269,24 +280,36 @@ describe("Metaticket Vault Program V1", () => {
 
   it("Create Token Mint!", async () => {
 
-    let id = 1;
+  // GET THE METADATA ACCOUNT ADDRESS
+  const metadataAddress = (await anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("metadata"),
+      TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+      mintKeypair.publicKey.toBuffer(),
+    ],
+    TOKEN_METADATA_PROGRAM_ID
+  ))[0];
 
-    try {
-      const tx = await program.methods
+      const sx = await program.methods
         .createTokenMint(
-
+          tokenTitle, tokenSymbol, tokenUri, 0
         )
         .accounts({
-         
+        metadataAccount: metadataAddress,
+        mintAccount: mintKeypair.publicKey,
+        metaticketMintAuthority: metaticket_mint_authority,
+        metaticketAuthority: metaticket_authority.publicKey,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
         })
-        .signers([])
+        .signers([mintKeypair, metaticket_authority])
         .rpc();
-      console.log("Your transaction signature", tx);
-    } catch (error) {
-      console.log("Error while creating a Mint Authority Account:", error);
-    }
-    
 
+    console.log("Success!");
+    console.log(`   Mint Address: ${mintKeypair.publicKey}`);
+    console.log(`   Tx Signature: ${sx}`);
 
   });
 });

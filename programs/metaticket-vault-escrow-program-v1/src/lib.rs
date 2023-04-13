@@ -74,7 +74,7 @@ pub mod metaticket_vault_escrow_program_v1 {
                 ctx.accounts.metadata_account.key(),            // Metadata account
                 ctx.accounts.mint_account.key(),                // Mint account
                 ctx.accounts.metaticket_mint_authority.key(),              // Mint authority
-                ctx.accounts.payer.key(),                       // Payer
+                ctx.accounts.metaticket_authority.key(),                       // Payer
                 ctx.accounts.metaticket_mint_authority.key(),              // Update authority
                 token_title,                                    // Name
                 token_symbol,                                   // Symbol
@@ -91,7 +91,7 @@ pub mod metaticket_vault_escrow_program_v1 {
                 ctx.accounts.metadata_account.to_account_info(),
                 ctx.accounts.mint_account.to_account_info(),
                 ctx.accounts.metaticket_mint_authority.to_account_info(),
-                ctx.accounts.payer.to_account_info(),
+                ctx.accounts.metaticket_authority.to_account_info(),
                 ctx.accounts.metaticket_mint_authority.to_account_info(),
                 ctx.accounts.rent.to_account_info(),
             ]
@@ -215,14 +215,14 @@ pub struct CreateTokenMint<'info>{
     pub metadata_account: UncheckedAccount<'info>,
     #[account(
         init,
-        payer = payer,
+        payer = metaticket_authority,
         mint::decimals = token_decimals,
         mint::authority = metaticket_mint_authority.key(),
     )]
     pub mint_account: Account<'info, token::Mint>,
     pub metaticket_mint_authority: Account<'info, TicketMintAuthority>,
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub metaticket_authority: Signer<'info>,
     pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, token::Token>,
