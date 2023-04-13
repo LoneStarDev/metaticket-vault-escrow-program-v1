@@ -50,7 +50,7 @@ describe("Metaticket Vault Program V1", () => {
   // SET UP NFT METADATA CONSTANTS
   const tokenTitle = "MetaTicket Genesis Event"
   const tokenSymbol = "METAGEN"
-  const tokenUri = "/Users/lonestardev/MetaTicket_Programs/metaticket-vault-escrow-program-v1/uri.json"
+  const tokenUri = "https://raw.githubusercontent.com/LoneStarDev/metaticket-vault-escrow-program-v1/main/uri.json"
 
 
   //FUNDING METATICKET PAYER ACCOUNT
@@ -274,7 +274,7 @@ describe("Metaticket Vault Program V1", () => {
     try {
       const tx = await program.methods
         .createTokenMint(
-          
+
         )
         .accounts({
          
