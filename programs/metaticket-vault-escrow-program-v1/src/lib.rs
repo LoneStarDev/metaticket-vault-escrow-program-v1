@@ -1,7 +1,17 @@
-use anchor_lang::prelude::*;
-use anchor_spl::{token::{
-    self , Mint, Token,
-    TokenAccount, Transfer as SplTransfer,
+
+
+use {
+    anchor_lang::{
+        prelude::*,
+        solana_program::program::invoke,
+    },
+    anchor_spl::token,
+    mpl_token_metadata::instruction as mpl_instruction,
+};
+
+
+use anchor_spl::{token::{Token,
+    TokenAccount,
 }, associated_token::AssociatedToken};
 // pub mod constant;
 
@@ -48,90 +58,67 @@ pub mod metaticket_vault_escrow_program_v1 {
     }
 
 
-    pub fn send_nfts_to_vault(ctx: Context<MintingTokensToVault>, id:u64, send_amount: u64) -> Result<()> {
+    pub fn create_token_mint(
+        ctx: Context<CreateTokenMint>,
+        token_title: String,
+        token_symbol: String,
+        token_uri: String,
+        _token_decimals: u8,
+    ) -> Result<()> {
 
-        let destination = &mut ctx.accounts.vault_ata;
-        let source = &mut ctx.accounts.account_ata;
-        let account = &mut ctx.accounts.metaticket_mint_authority;
-        let token_program = &mut ctx.accounts.token_program;
-        let mint = &mut ctx.accounts.token_mint;
-        let manager = &mut ctx.accounts.metaticket_manager;
+        msg!("Creating metadata account...");
+        msg!("Metadata account address: {}", &ctx.accounts.metadata_account.key());
+        invoke(
+            &mpl_instruction::create_metadata_accounts_v3(
+                ctx.accounts.token_metadata_program.key(),      // Program ID (the Token Metadata Program)
+                ctx.accounts.metadata_account.key(),            // Metadata account
+                ctx.accounts.mint_account.key(),                // Mint account
+                ctx.accounts.metaticket_mint_authority.key(),              // Mint authority
+                ctx.accounts.payer.key(),                       // Payer
+                ctx.accounts.metaticket_mint_authority.key(),              // Update authority
+                token_title,                                    // Name
+                token_symbol,                                   // Symbol
+                token_uri,                                      // URI
+                None,                                           // Creators
+                0,                                              // Seller fee basis points
+                true,                                           // Update authority is signer
+                false,                                          // Is mutable
+                None,                                           // Collection
+                None,                                           // Uses
+                None,                                           // Collection Details
+            ),
+            &[
+                ctx.accounts.metadata_account.to_account_info(),
+                ctx.accounts.mint_account.to_account_info(),
+                ctx.accounts.metaticket_mint_authority.to_account_info(),
+                ctx.accounts.payer.to_account_info(),
+                ctx.accounts.metaticket_mint_authority.to_account_info(),
+                ctx.accounts.rent.to_account_info(),
+            ]
+        )?;
+    
+        msg!("Token mint created successfully.");
 
-           // Define CPI Accounts for SPL transfer
-    let cpi_accounts = SplTransfer {
-        from: source.to_account_info().clone(),
-        to: destination.to_account_info().clone(),
-        authority: account.to_account_info().clone(),
-    };
-
-    ctx.accounts.metaticket_mint_authority.id = id;
-    let id_bytes = id.to_le_bytes();
-
-    // Seeds should match the MemberAccount PDA
-    let seeds = &[
-      b"mint_auth".as_ref(), 
-      manager.key().as_ref(), 
-      &id.to_le_bytes(),
-      &[account.bump] 
-    ];
-
-    // Sign and execute transfer
-    let signer = &[&seeds[..]];
-    let cpi = CpiContext::new_with_signer(
-        token_program.to_account_info(),
-        cpi_accounts,
-        signer,
-    );
-    anchor_spl::token::transfer(cpi, send_amount)?;
+        Ok(())
+    }
 
 
+
+
+
+
+
+
+
+
+
+
+    // pub fn exchange(ctx: Context<Exchange>) -> Result<()> {
 
         
 
-        Ok(())
-    }
-
-    pub fn initialize_vault_and_escrow(ctx: Context<InitializeEscrow,>, metaticket_amount_nft_to_send_vault: u64, taker_amount_usdc_to_metaticket: u64) -> Result<()> {
-
-        let escrow_state = &mut ctx.accounts.escrow_state;
-        escrow_state.metaticket_authority = *ctx.accounts.metaticket_authority.key;
-        escrow_state.metaticket_nft_atas_to_vault = *ctx.accounts.metaticket_nft_atas_to_vault.to_account_info().key;
-        escrow_state.metaticket_receive_usdc_account = *ctx.accounts.metaticket_receive_usdc_account.to_account_info().key;
-        escrow_state.metaticket_amount_nft_to_send_vault = metaticket_amount_nft_to_send_vault;
-        escrow_state.taker_amount_usdc_to_metaticket = taker_amount_usdc_to_metaticket;
-
-
-    
-        Ok(())
-    }
-
-
-    pub fn exchange(ctx: Context<Exchange>, id:u64) -> Result<()> {
-
-        ctx.accounts.metaticket_mint_authority.id = id;
-        let id_bytes = id.to_le_bytes();
-        let authority_seed = &[b"auth", &id_bytes[..]];
-
-        let (_vault_authority, vault_authority_bump) =
-        Pubkey::find_program_address(authority_seed, ctx.program_id);
-
-        let authority_seeds = &[&authority_seed[..], &[&[vault_authority_bump]]];
-
-        token::transfer(
-            ctx.accounts.into_transfer_to_initializer_context(),
-            ctx.accounts.escrow_state.taker_amount_usdc_to_metaticket,
-        )?;
-
-        token::transfer(
-            ctx.accounts
-                .into_transfer_to_taker_context()
-                .with_signer(&authority_seeds[..]),
-            ctx.accounts.escrow_state.metaticket_amount_nft_to_send_vault,
-        )?;
-
-
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
 }
 
@@ -153,16 +140,16 @@ pub struct TicketMintAuthority {
     pub bump: u8,
 }
 
-#[account]
-#[derive(InitSpace)]
-pub struct EscrowState {
-    pub bump: u8,
-    pub metaticket_authority: Pubkey,
-    pub metaticket_nft_atas_to_vault: Pubkey,
-    pub metaticket_receive_usdc_account: Pubkey,
-    pub metaticket_amount_nft_to_send_vault: u64,
-    pub taker_amount_usdc_to_metaticket: u64,
-}
+// #[account]
+// #[derive(InitSpace)]
+// pub struct EscrowState {
+//     pub bump: u8,
+//     pub metaticket_authority: Pubkey,
+//     pub metaticket_nft_atas_to_vault: Pubkey,
+//     pub metaticket_receive_usdc_account: Pubkey,
+//     pub metaticket_amount_nft_to_send_vault: u64,
+//     pub taker_amount_usdc_to_metaticket: u64,
+// }
 
 #[derive(Accounts)]
 
@@ -215,88 +202,70 @@ pub struct InitializeMintAuthority <'info> {
 
 
 #[derive(Accounts)]
+#[instruction(
+    token_title: String, 
+    token_symbol: String, 
+    token_uri: String,
+    token_decimals: u8,
+)]
 
-pub struct MintingTokensToVault <'info>{
+pub struct CreateTokenMint<'info>{
+    /// CHECK: We're about to create this with Metaplex
     #[account(mut)]
-    pub metaticket_authority: Signer<'info>,
-
-    pub metaticket_manager: Account<'info, MetaTicketManager>,
-
-
-    // metaticket mint authority PDA will authorize the token transfer
-    pub metaticket_mint_authority: Account<'info, TicketMintAuthority>,
-
-    // The token account sending SPL Tokens; it is owned by the mint authority ()
-    #[account(
-        mut,
-        constraint = account_ata.mint == token_mint.key(),
-        constraint = account_ata.owner == metaticket_mint_authority.key()
-    )]
-    pub account_ata: Account<'info, TokenAccount>,
-
-
-    pub vault_ata: Account<'info, TokenAccount>,
-
-
-    pub token_mint: Account<'info, Mint>,
-
-
-    pub token_program: Program<'info, Token>,
-
-    
-    pub associated_token_program: Program<'info, AssociatedToken>,
-
-
-    pub system_program: Program<'info, System>,
-
-
-
-
-
-
-
-
-
-    
-
-}
-
-
-
-
-
-
-
-
-
-
-
-#[derive(Accounts)]
-#[instruction(id: u64)]
-pub struct InitializeEscrow<'info>{
-    #[account(mut)]
-    pub metaticket_authority: Signer<'info>,
-    pub mint: Account<'info, Mint>,
-    pub metaticket_mint_authority: Account<'info, TicketMintAuthority>,
-
+    pub metadata_account: UncheckedAccount<'info>,
     #[account(
         init,
-        seeds = [b"vault".as_ref(), &id.to_le_bytes()],
-        bump,
-        payer = metaticket_authority,
-        token::mint = mint,
-        token::authority = metaticket_authority,
-    )] 
-    pub metaticket_nft_vault: Account<'info, TokenAccount>,
-    pub escrow_state: Account<'info, EscrowState>,
-    pub metaticket_nft_atas_to_vault:Box<Account<'info, TokenAccount>>,
+        payer = payer,
+        mint::decimals = token_decimals,
+        mint::authority = metaticket_mint_authority.key(),
+    )]
+    pub mint_account: Account<'info, token::Mint>,
+    pub metaticket_mint_authority: Account<'info, TicketMintAuthority>,
     #[account(mut)]
-    pub metaticket_receive_usdc_account: Box<Account<'info, TokenAccount>>,
-    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub payer: Signer<'info>,
+    pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
-    /// CHECK: This is not dangerous because we don't read or write from this account
-    pub token_program: Program<'info, Token>,
+    pub token_program: Program<'info, token::Token>,
+    /// CHECK: Metaplex will check this
+    pub token_metadata_program: UncheckedAccount<'info>,
 }
+
+
+
+
+
+
+
+
+
+
+
+// #[derive(Accounts)]
+// #[instruction(id: u64)]
+// pub struct InitializeEscrow<'info>{
+//     #[account(mut)]
+//     pub metaticket_authority: Signer<'info>,
+//     pub mint: Account<'info, Mint>,
+//     pub metaticket_mint_authority: Account<'info, TicketMintAuthority>,
+
+//     #[account(
+//         init,
+//         seeds = [b"vault".as_ref(), &id.to_le_bytes()],
+//         bump,
+//         payer = metaticket_authority,
+//         token::mint = mint,
+//         token::authority = metaticket_authority,
+//     )] 
+//     pub metaticket_nft_vault: Account<'info, TokenAccount>,
+//     pub escrow_state: Account<'info, EscrowState>,
+//     pub metaticket_nft_atas_to_vault:Box<Account<'info, TokenAccount>>,
+//     #[account(mut)]
+//     pub metaticket_receive_usdc_account: Box<Account<'info, TokenAccount>>,
+//     /// CHECK: This is not dangerous because we don't read or write from this account
+//     pub system_program: Program<'info, System>,
+//     /// CHECK: This is not dangerous because we don't read or write from this account
+//     pub token_program: Program<'info, Token>,
+// }
 
 #[derive(Accounts)]
 #[instruction(id: u64)]
@@ -314,17 +283,7 @@ pub struct Exchange<'info> {
     #[account(mut)]
     pub metaticket_authority: Signer<'info>,
     pub metaticket_mint_authority: Account<'info, TicketMintAuthority>,
-    #[account(
-        mut,   constraint = escrow_state.taker_amount_usdc_to_metaticket == taker_deposit_token_account.amount,
-        constraint = escrow_state.metaticket_nft_atas_to_vault == *metaticket_nft_atas_to_vault.to_account_info().key,
-        constraint = escrow_state.metaticket_receive_usdc_account == *metaticket_receive_usdc_account.to_account_info().key,
-        constraint = escrow_state.metaticket_authority == *metaticket_authority.key,
-    )]
-    pub escrow_state: Box<Account<'info, EscrowState>>,
-    #[account(
-        seeds = [b"vault".as_ref(), metaticket_mint_authority.key().as_ref(), &id.to_le_bytes()],
-        bump,
-    )]
+ 
     pub metaticket_nft_vault: Account<'info, TokenAccount>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub vault_authority: AccountInfo<'info>,
@@ -338,27 +297,6 @@ pub struct Exchange<'info> {
 
 
 
-impl<'info> Exchange<'info> {
-    fn into_transfer_to_initializer_context(
-        &self,
-    ) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
-        let cpi_accounts = Transfer {
-            from: self.taker_deposit_token_account.to_account_info(),
-            to: self.metaticket_receive_usdc_account.to_account_info(),
-            authority: self.taker.to_account_info(),
-        };
-        CpiContext::new(self.token_program.to_account_info(), cpi_accounts)
-    }
-
-    fn into_transfer_to_taker_context(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
-        let cpi_accounts = Transfer {
-            from: self.metaticket_nft_vault.to_account_info(),
-            to: self.taker_receive_token_account.to_account_info(),
-            authority: self.vault_authority.clone(),
-        };
-        CpiContext::new(self.token_program.to_account_info(), cpi_accounts)
-    }
- }
 
  #[error_code]
  pub enum MetaTicketError {

@@ -13,37 +13,47 @@ import {
 } from "@solana/spl-token";
 
 
-describe("test", () => {
+describe("Metaticket Vault Program V1", () => {
+
   // Configure the client to use the local cluster.
   const provider = anchor.setProvider(
     anchor.AnchorProvider.local("http://127.0.0.1:8899")
   );
+
+
   const program = anchor.workspace
     .MetaticketVaultEscrowProgramV1 as Program<MetaticketVaultEscrowProgramV1>;
   const { connection } = program.provider;
   const commitment: Commitment = "confirmed";
 
-  const tokenProgram = new PublicKey(
-    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-  );
 
-  // CREATE ROLES
+
+
+  // CREATE METATICKET ROLES
   const metaticket_authority = anchor.web3.Keypair.generate();
   const metaticket_vault = anchor.web3.Keypair.generate();
+
+  // CREATE USDC ROLES
   const mintUSDC = anchor.web3.Keypair.generate();
   const usdc_authority = anchor.web3.Keypair.generate();
-
-  const mint_nft = anchor.web3.Keypair.generate();
-
 
   // CREATE AMOUNTS OF NFTS TO SEND TO VAULT
   // CREATE AMOUNT EXPECTED PER TICKET
   const send_amount = 2;
+
+  // CREATE AMOUNT USDC TO SEND TO VAULT FOR NFTS
   const taker_amount_usdc_to_metaticket_per_ticket = 2;
 
   //TAKERS AUTHORITY
   const ticket_buyers_account_authority = anchor.web3.Keypair.generate();
 
+  // SET UP NFT METADATA CONSTANTS
+  const tokenTitle = "MetaTicket Genesis Event"
+  const tokenSymbol = "METAGEN"
+  const tokenUri = "/Users/lonestardev/MetaTicket_Programs/metaticket-vault-escrow-program-v1/uri.json"
+
+
+  //FUNDING METATICKET PAYER ACCOUNT
   before("before call", async () => {
     //Airdrop 5 SOL to metaticket Auth
     const signature = await connection.requestAirdrop(
@@ -60,36 +70,6 @@ describe("test", () => {
     );
   });
 
-  before("before call", async () => {
-    //Airdrop 5 SOL to metaticket Auth
-    const signature = await connection.requestAirdrop(
-      metaticket_mint_authority,
-      500000000000
-    );
-    const latestBlockhash = await connection.getLatestBlockhash();
-    await connection.confirmTransaction(
-      {
-        signature,
-        ...latestBlockhash,
-      },
-      commitment
-    );
-  });
-
-  before("before call", async () => {
-    const signature = await connection.requestAirdrop(
-      metaticket_vault.publicKey,
-      10000000000000
-    );
-    const latestBlockhash = await connection.getLatestBlockhash();
-    await connection.confirmTransaction(
-      {
-        signature,
-        ...latestBlockhash,
-      },
-      commitment
-    );
-  });
 
   // DETERMINE THE METATICKET MANAGER WITH THE PDA
   const managerSeeds = [
@@ -287,13 +267,15 @@ describe("test", () => {
 
 
 
-  it("Minted Tokens to Vault!", async () => {
+  it("Create Token Mint!", async () => {
 
     let id = 1;
 
     try {
       const tx = await program.methods
-        .sendNftsToVault(new anchor.BN(id), new anchor.BN(send_amount))
+        .createTokenMint(
+          
+        )
         .accounts({
          
         })
