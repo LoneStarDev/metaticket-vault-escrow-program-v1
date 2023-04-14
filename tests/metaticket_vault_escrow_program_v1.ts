@@ -69,7 +69,7 @@ describe("Metaticket Vault Program V1", () => {
     //Airdrop 5 SOL to metaticket Auth
     const signature = await connection.requestAirdrop(
       metaticket_authority.publicKey,
-      2000000000
+      1000000000
     );
     const latestBlockhash = await connection.getLatestBlockhash();
     await connection.confirmTransaction(
@@ -257,8 +257,6 @@ describe("Metaticket Vault Program V1", () => {
 
 
   
-
-
 
 
   it("Create an NFT!", async () => {
