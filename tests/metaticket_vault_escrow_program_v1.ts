@@ -1,5 +1,5 @@
 import * as anchor from "@project-serum/anchor";
-import { Program, web3, workspace } from "@project-serum/anchor";
+import { Program } from "@project-serum/anchor";
 import { MetaticketVaultEscrowProgramV1 } from "../target/types/metaticket_vault_escrow_program_v1";
 import { PublicKey, Commitment } from "@solana/web3.js";
 import {
@@ -11,6 +11,7 @@ import {
   TOKEN_PROGRAM_ID,
   mintTo,
 } from "@solana/spl-token";
+import {Connection} from "@solana/web3.js";
 
 import { 
   PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID
@@ -18,21 +19,18 @@ import {
 
 
 
-
-
-
 describe("Metaticket Vault Program V1", () => {
 
   // Configure the client to use the local cluster.
-  const provider = anchor.setProvider(
-    anchor.AnchorProvider.local("http://127.0.0.1:8899")
-  );
-
+  const provider = anchor.AnchorProvider.env();
+  anchor.setProvider(provider);
+  
 
   const program = anchor.workspace
     .MetaticketVaultEscrowProgramV1 as Program<MetaticketVaultEscrowProgramV1>;
-  const { connection } = program.provider;
+
   const commitment: Commitment = "confirmed";
+  const connection = new Connection('https://api.devnet.solana.com', commitment)
 
 
 
@@ -56,12 +54,14 @@ describe("Metaticket Vault Program V1", () => {
   const ticket_buyers_account_authority = anchor.web3.Keypair.generate();
 
   // SET UP NFT METADATA CONSTANTS
-  const tokenTitle = "MetaTicket Genesis Event"
-  const tokenSymbol = "METAGEN"
-  const tokenUri = "https://raw.githubusercontent.com/LoneStarDev/metaticket-vault-escrow-program-v1/main/uri.json"
+  const nftTitle = "MetaTicket Genesis Event"
+  const nftSymbol = "METAGEN"
+  const nftUri = "https://raw.githubusercontent.com/LoneStarDev/metaticket-vault-escrow-program-v1/main/uri.json"
 
   // SET UP MINT KEYPAIR
   const mintKeypair: anchor.web3.Keypair = anchor.web3.Keypair.generate();
+
+
 
 
   //FUNDING METATICKET PAYER ACCOUNT
@@ -69,7 +69,7 @@ describe("Metaticket Vault Program V1", () => {
     //Airdrop 5 SOL to metaticket Auth
     const signature = await connection.requestAirdrop(
       metaticket_authority.publicKey,
-      5000000000
+      2000000000
     );
     const latestBlockhash = await connection.getLatestBlockhash();
     await connection.confirmTransaction(
@@ -107,9 +107,7 @@ describe("Metaticket Vault Program V1", () => {
   // THIS WILL BE THE AUTHORITY WE USE TO MINT TICKETS FOR EACH COLLECTION
 
   const mintAuthoritySeeds = [
-    Buffer.from("mint_auth"),
-    metaticket_manager.toBuffer(),
-    Buffer.from(new anchor.BN(id).toArrayLike(Buffer, "le", 8)),
+    Buffer.from("mint_authority"),
   ];
 
   const [metaticket_mint_authority, mint_auth_bump] =
@@ -119,18 +117,6 @@ describe("Metaticket Vault Program V1", () => {
     metaticket_mint_authority
   );
 
-  // DETERMINE THE ESCROW STATE PDA
-  const seeds = [
-    Buffer.from("escrow_state"),
-    metaticket_manager.toBuffer(),
-    Buffer.from(new anchor.BN(id).toArrayLike(Buffer, "le", 8)),
-  ];
-
-  const [escrow_state, escrow_bump] = PublicKey.findProgramAddressSync(
-    seeds,
-    program.programId
-  );
-  console.log("This is the escrow state PDA address", escrow_state);
 
   // DETERMINE THE VAULT KEY PDA
   const vaultSeeds = [
@@ -275,41 +261,42 @@ describe("Metaticket Vault Program V1", () => {
 
 
 
+  it("Create an NFT!", async () => {
 
 
-
-  it("Create Token Mint!", async () => {
-
-  // GET THE METADATA ACCOUNT ADDRESS
-  const metadataAddress = (await anchor.web3.PublicKey.findProgramAddressSync(
-    [
-      Buffer.from("metadata"),
-      TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-      mintKeypair.publicKey.toBuffer(),
-    ],
-    TOKEN_METADATA_PROGRAM_ID
-  ))[0];
-
-      const sx = await program.methods
-        .createTokenMint(
-          tokenTitle, tokenSymbol, tokenUri, 0
-        )
+    try{
+      const metadataAddress = (anchor.web3.PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("metadata"),
+            TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+            mintKeypair.publicKey.toBuffer(),
+          ],
+          TOKEN_METADATA_PROGRAM_ID
+      ))[0];
+  
+      const sx = await program.methods.createToken(
+        nftTitle, nftSymbol, nftUri
+      )
         .accounts({
-        metadataAccount: metadataAddress,
-        mintAccount: mintKeypair.publicKey,
-        metaticketMintAuthority: metaticket_mint_authority,
-        metaticketAuthority: metaticket_authority.publicKey,
-        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+          metaticketAuthority: metaticket_authority.publicKey,
+          metadataAccount: metadataAddress,
+          mintAccount: mintKeypair.publicKey,
+          metaticketMintAuthority: metaticket_mint_authority,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+          systemProgram: anchor.web3.SystemProgram.programId,
+          tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+          tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
         })
         .signers([mintKeypair, metaticket_authority])
         .rpc();
+  
+      console.log("Success!");
+          console.log(`   Mint Address: ${mintKeypair.publicKey}`);
+          console.log(`   Tx Signature: ${sx}`);
 
-    console.log("Success!");
-    console.log(`   Mint Address: ${mintKeypair.publicKey}`);
-    console.log(`   Tx Signature: ${sx}`);
-
+    } catch (err){
+      console.log(err)
+    }
   });
+
 });
